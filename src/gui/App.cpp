@@ -1,0 +1,16 @@
+#include "App.h"
+#include <imgui.h>
+#include <GLFW/glfw3.h>
+
+namespace minios::gui {
+App::App(){applyTheme(true);}
+void App::applyTheme(bool dark){dark_=dark;if(dark)ImGui::StyleColorsDark();else ImGui::StyleColorsLight();auto&s=ImGui::GetStyle();s.WindowRounding=6;s.FrameRounding=4;s.GrabRounding=4;s.TabRounding=4;s.WindowPadding={10,10};}
+void App::resetAll(){scheduler_.reset();memory_.reset();paging_.reset();deadlock_.reset();lastAction_="Reset all modules";}
+void App::render(GLFWwindow* window){
+ const ImGuiViewport*vp=ImGui::GetMainViewport();ImGui::SetNextWindowPos(vp->WorkPos);ImGui::SetNextWindowSize(vp->WorkSize);ImGui::Begin("Mini Operating System Simulator",nullptr,ImGuiWindowFlags_NoDecoration|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoSavedSettings|ImGuiWindowFlags_MenuBar);
+ if(ImGui::BeginMenuBar()){if(ImGui::BeginMenu("File")){if(ImGui::MenuItem("Reset All"))resetAll();if(ImGui::MenuItem("Exit"))glfwSetWindowShouldClose(window,GLFW_TRUE);ImGui::EndMenu();}if(ImGui::BeginMenu("View")){if(ImGui::MenuItem("Dark theme",nullptr,dark_))applyTheme(true);if(ImGui::MenuItem("Light theme",nullptr,!dark_))applyTheme(false);ImGui::EndMenu();}if(ImGui::BeginMenu("Help")){if(ImGui::MenuItem("About"))showAbout_=true;if(ImGui::MenuItem("Algorithm Notes"))showNotes_=true;ImGui::EndMenu();}ImGui::EndMenuBar();}
+ float footer=28;ImGui::BeginChild("content",{0,-footer},false);if(ImGui::BeginTabBar("modules")){if(ImGui::BeginTabItem("CPU Scheduling")){tab_=0;scheduler_.render();ImGui::EndTabItem();}if(ImGui::BeginTabItem("Memory Allocation")){tab_=1;memory_.render();ImGui::EndTabItem();}if(ImGui::BeginTabItem("Page Replacement")){tab_=2;paging_.render();ImGui::EndTabItem();}if(ImGui::BeginTabItem("Deadlocks")){tab_=3;deadlock_.render();ImGui::EndTabItem();}ImGui::EndTabBar();}ImGui::EndChild();ImGui::Separator();const char*tabs[]={"CPU Scheduling","Memory Allocation","Page Replacement","Deadlocks"};const std::string*states[]={&scheduler_.status(),&memory_.status(),&paging_.status(),&deadlock_.status()};ImGui::Text("%s",tabs[tab_]);ImGui::SameLine(180);ImGui::TextDisabled("Last action: %s",lastAction_.c_str());ImGui::SameLine(500);ImGui::TextDisabled("State: %s",states[tab_]->c_str());
+ if(showAbout_){ImGui::OpenPopup("About MiniOS");showAbout_=false;}if(ImGui::BeginPopupModal("About MiniOS",nullptr,ImGuiWindowFlags_AlwaysAutoResize)){ImGui::TextUnformatted("Mini Operating System Simulator\nC++17 + Dear ImGui\nInteractive educational visualizations.");if(ImGui::Button("Close"))ImGui::CloseCurrentPopup();ImGui::EndPopup();}
+ if(showNotes_){ImGui::OpenPopup("Algorithm Notes");showNotes_=false;}if(ImGui::BeginPopupModal("Algorithm Notes",nullptr,ImGuiWindowFlags_AlwaysAutoResize)){ImGui::TextWrapped("Scheduling: lower priority numbers run first. SRTF and preemptive priority reconsider the CPU each tick.\n\nMemory: fixed partitions accept at most one process; leftover capacity is internal fragmentation.\n\nPaging: Optimal looks ahead and is a theoretical lower bound. Clock approximates LRU with reference bits.\n\nDeadlocks: Banker's algorithm grants only requests that preserve a safe sequence. A directed cycle in a single-instance resource graph indicates deadlock.");if(ImGui::Button("Close"))ImGui::CloseCurrentPopup();ImGui::EndPopup();}ImGui::End();
+}
+} // namespace minios::gui

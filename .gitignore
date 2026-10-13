@@ -1,0 +1,18 @@
+# CMake build trees and generated files
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Runtime state and exported reports
+imgui.ini
+*_results.csv
+*_results.txt
+
+# Editor and operating-system files
+.DS_Store
+.idea/
+.vscode/
+*.swp
