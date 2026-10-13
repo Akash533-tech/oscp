@@ -10,6 +10,8 @@ public:
     PagingPanel();
     /** Renders and updates the page replacement simulator. */ void render();
     /** Restores defaults. */ void reset();
+    /** Serializes editable paging state. */ std::string saveState() const;
+    /** Restores editable paging state. */ bool loadState(const std::string& json);
     const std::string& status() const { return status_; }
 private:
     void run(); void loadExample(int); bool parse(); void exportCsv();

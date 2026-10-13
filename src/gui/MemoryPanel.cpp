@@ -1,9 +1,11 @@
 #include "MemoryPanel.h"
+#include "StateIO.h"
 #include <imgui.h>
 #include <algorithm>
 #include <fstream>
 #include <numeric>
 #include <random>
+#include <sstream>
 
 namespace minios::gui {
 MemoryPanel::MemoryPanel(){reset();}
@@ -11,6 +13,8 @@ void MemoryPanel::loadExample(int i){if(i==0){blocks_={100,500,200,300,600};proc
 void MemoryPanel::reset(){algorithm_=FitAlgorithm::First;freeBlock_=-1;loadExample(0);status_="Loaded memory example";}
 void MemoryPanel::run(){try{result_=MemoryManager::allocate(blocks_,processes_,algorithm_);error_.clear();playback_.reset();status_=std::string("Ran ")+MemoryManager::name(algorithm_);}catch(const std::exception&e){error_=e.what();status_="Input error";}}
 void MemoryPanel::exportCsv(){std::ofstream f("memory_results.csv");f<<"Process,Size,Block,Fragment\n";for(size_t i=0;i<processes_.size();++i){int b=i<result_.allocation.size()?result_.allocation[i]:-1;f<<'P'<<i<<','<<processes_[i]<<','<<b<<','<<(b>=0?blocks_[b]-processes_[i]:0)<<'\n';}status_=f?"Saved memory_results.csv":"Export failed";}
+std::string MemoryPanel::saveState()const{std::ostringstream o;o<<"{\"blocks\":"<<stateio::list(blocks_)<<",\"processes\":"<<stateio::list(processes_)<<",\"algorithm\":"<<(int)algorithm_<<'}';return o.str();}
+bool MemoryPanel::loadState(const std::string&json){auto blocks=stateio::array(json,"blocks"),processes=stateio::array(json,"processes");if(blocks.empty()||processes.empty())return false;blocks_=blocks;processes_=processes;algorithm_=(FitAlgorithm)std::clamp(stateio::integer(json,"algorithm",0),0,3);run();return error_.empty();}
 static void editList(const char*id,std::vector<int>&v){ImGui::PushID(id);int rem=-1;for(int i=0;i<(int)v.size();++i){ImGui::PushID(i);ImGui::SetNextItemWidth(95);ImGui::InputInt("##size",&v[i],0,0);ImGui::SameLine();if(ImGui::SmallButton("X"))rem=i;ImGui::PopID();}if(rem>=0)v.erase(v.begin()+rem);if(ImGui::Button("Add"))v.push_back(64);ImGui::PopID();}
 void MemoryPanel::render(){const char* names[]={"First Fit","Best Fit","Worst Fit","Next Fit"};int a=(int)algorithm_;ImGui::BeginChild("mem_left",{330,0},true);ImGui::TextUnformatted("Fixed partitions");ImGui::SetNextItemWidth(180);if(ImGui::Combo("Strategy",&a,names,4)){algorithm_=(FitAlgorithm)a;run();}static int ex=0;const char* examples[]={"Classic","Fragmented","Powers of two"};ImGui::SetNextItemWidth(170);if(ImGui::Combo("Example",&ex,examples,3))loadExample(ex);ImGui::TextUnformatted("Block sizes");editList("blocks",blocks_);ImGui::Separator();ImGui::TextUnformatted("Process sizes");editList("procs",processes_);if(ImGui::Button("Randomize")){std::mt19937 g(std::random_device{}());blocks_.clear();processes_.clear();for(int i=0;i<5;++i)blocks_.push_back(80+g()%421);for(int i=0;i<5;++i)processes_.push_back(40+g()%301);}ImGui::SameLine();if(ImGui::Button("Run"))run();ImGui::SameLine();if(ImGui::Button("Save Results"))exportCsv();if(!error_.empty())ImGui::TextColored({1,.3f,.3f,1},"%s",error_.c_str());
     ImGui::Separator();ImGui::TextUnformatted("Dynamic operations");ImGui::TextWrapped("Select an allocated block to deallocate; Compact removes free partitions and combines their capacity.");ImGui::SetNextItemWidth(100);ImGui::InputInt("Block",&freeBlock_);if(ImGui::Button("Deallocate")&&freeBlock_>=0&&freeBlock_<(int)blocks_.size()){for(size_t i=0;i<result_.allocation.size();++i)if(result_.allocation[i]==freeBlock_)result_.allocation[i]=-1;status_="Deallocated selected block (visual state)";}ImGui::SameLine();if(ImGui::Button("Compact")){std::vector<int>used,free;for(size_t b=0;b<blocks_.size();++b){bool allocated=std::find(result_.allocation.begin(),result_.allocation.end(),(int)b)!=result_.allocation.end();(allocated?used:free).push_back(blocks_[b]);}int sum=std::accumulate(free.begin(),free.end(),0);blocks_=used;if(sum)blocks_.push_back(sum);run();status_="Compacted free capacity";}

@@ -16,7 +16,7 @@ find_package(OpenGL REQUIRED)
 
 add_library(minios_core
   src/core/Scheduler.cpp src/core/MemoryManager.cpp
-  src/core/PageReplacement.cpp src/core/Deadlock.cpp)
+  src/core/PageReplacement.cpp src/core/Deadlock.cpp src/core/DiskScheduler.cpp)
 target_include_directories(minios_core PUBLIC src)
 
 add_library(imgui_lib
@@ -30,7 +30,7 @@ target_link_libraries(imgui_lib PUBLIC glfw OpenGL::GL)
 add_executable(MiniOS
   src/main.cpp src/gui/App.cpp src/gui/Widgets.cpp
   src/gui/SchedulerPanel.cpp src/gui/MemoryPanel.cpp
-  src/gui/PagingPanel.cpp src/gui/DeadlockPanel.cpp)
+  src/gui/PagingPanel.cpp src/gui/DeadlockPanel.cpp src/gui/DiskPanel.cpp)
 target_link_libraries(MiniOS PRIVATE minios_core imgui_lib)
 if(MSVC)
   target_compile_options(MiniOS PRIVATE /W4 /permissive-)

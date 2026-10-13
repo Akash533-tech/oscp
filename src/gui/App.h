@@ -3,6 +3,7 @@
 #include "MemoryPanel.h"
 #include "PagingPanel.h"
 #include "DeadlockPanel.h"
+#include "DiskPanel.h"
 #include <string>
 struct GLFWwindow;
 namespace minios::gui {
@@ -11,7 +12,7 @@ public:
     /** Creates application state and default datasets. */ App();
     /** Draws a complete application frame. */ void render(GLFWwindow* window);
 private:
-    void applyTheme(bool dark); void resetAll();
-    SchedulerPanel scheduler_; MemoryPanel memory_; PagingPanel paging_; DeadlockPanel deadlock_; bool dark_{true}; int tab_{0}; bool showAbout_{false},showNotes_{false}; std::string lastAction_{"Application started"};
+    void applyTheme(bool dark); void resetAll(); void saveProject(); void loadProject();
+    SchedulerPanel scheduler_; MemoryPanel memory_; PagingPanel paging_; DeadlockPanel deadlock_; DiskPanel disk_; bool dark_{true}; int tab_{0}; bool showAbout_{false},showNotes_{false}; std::string lastAction_{"Application started"};
 };
 }  // namespace minios::gui

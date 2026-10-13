@@ -1,8 +1,10 @@
 #include "DeadlockPanel.h"
+#include "StateIO.h"
 #include <imgui.h>
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <sstream>
 
 namespace minios::gui {
 DeadlockPanel::DeadlockPanel(){reset();}
@@ -16,6 +18,8 @@ void DeadlockPanel::reset(){loadBanker(0);loadGraph(true);status_="Loaded textbo
 void DeadlockPanel::runSafety(){try{safety_=Deadlock::safety(alloc_,max_,avail_);error_.clear();playback_.reset();status_=safety_.safe?"State is safe":"State is unsafe";}catch(const std::exception&e){error_=e.what();}}
 void DeadlockPanel::runRequest(){try{requestResult_=Deadlock::request(alloc_,max_,avail_,requestPid_,request_);status_=requestResult_.explanation;}catch(const std::exception&e){error_=e.what();}}
 void DeadlockPanel::exportResults(){std::ofstream f("deadlock_results.txt");f<<(safety_.safe?"SAFE\nSequence: ":"UNSAFE\n");for(int p:safety_.sequence)f<<'P'<<p<<' ';f<<"\nNeed matrix:\n";for(const auto&row:safety_.need){for(int x:row)f<<x<<' ';f<<'\n';}f<<"\nGraph cycle: "<<(cycle_.hasCycle?"yes":"no")<<"\n";for(int p:cycle_.deadlockedProcesses)if(p<graphProcesses_)f<<'P'<<p<<' ';status_=f?"Saved deadlock_results.txt":"Export failed";}
+std::string DeadlockPanel::saveState()const{std::vector<int>a,x;for(const auto&row:alloc_)a.insert(a.end(),row.begin(),row.end());for(const auto&row:max_)x.insert(x.end(),row.begin(),row.end());std::ostringstream o;o<<"{\"n\":"<<n_<<",\"m\":"<<m_<<",\"allocation\":"<<stateio::list(a)<<",\"maximum\":"<<stateio::list(x)<<",\"available\":"<<stateio::list(avail_)<<'}';return o.str();}
+bool DeadlockPanel::loadState(const std::string&json){int n=stateio::integer(json,"n",0),m=stateio::integer(json,"m",0);auto a=stateio::array(json,"allocation"),x=stateio::array(json,"maximum"),v=stateio::array(json,"available");if(n<=0||m<=0||a.size()!=(size_t)n*m||x.size()!=(size_t)n*m||v.size()!=(size_t)m)return false;n_=n;m_=m;alloc_.assign(n_,std::vector<int>(m_));max_.assign(n_,std::vector<int>(m_));for(int i=0;i<n_;++i)for(int j=0;j<m_;++j){alloc_[i][j]=a[i*m_+j];max_[i][j]=x[i*m_+j];}avail_=v;request_.assign(m_,0);requestPid_=0;runSafety();return error_.empty();}
 void DeadlockPanel::loadGraph(bool dead){graphProcesses_=4;graphResources_=2;edges_=dead?std::vector<GraphEdge>{{0,4},{4,1},{1,5},{5,0}}:std::vector<GraphEdge>{{0,4},{4,1},{2,5}};positions_.clear();for(int i=0;i<graphProcesses_;++i)positions_.push_back({90.0f+i*115.0f,90.0f});for(int i=0;i<graphResources_;++i)positions_.push_back({150.0f+i*220.0f,240.0f});cycle_=Deadlock::detectCycle(graphProcesses_+graphResources_,edges_);status_=dead?"Loaded deadlocked RAG":"Loaded safe RAG";}
 static void matrixEditor(const char*id,std::vector<std::vector<int>>&mat,int n,int m){if(ImGui::BeginTable(id,m+1,ImGuiTableFlags_Borders|ImGuiTableFlags_SizingFixedFit)){ImGui::TableSetupColumn("");for(int j=0;j<m;++j)ImGui::TableSetupColumn(("R"+std::to_string(j)).c_str());ImGui::TableHeadersRow();for(int i=0;i<n;++i){ImGui::TableNextRow();ImGui::TableNextColumn();ImGui::Text("P%d",i);for(int j=0;j<m;++j){ImGui::TableNextColumn();ImGui::PushID(i*100+j);ImGui::SetNextItemWidth(45);ImGui::InputInt("##v",&mat[i][j],0,0);ImGui::PopID();}}ImGui::EndTable();}}
 void DeadlockPanel::drawGraph(){ImVec2 canvas=ImGui::GetCursorScreenPos(),size(ImGui::GetContentRegionAvail().x,340);ImGui::InvisibleButton("ragcanvas",size,ImGuiButtonFlags_MouseButtonLeft);auto*dl=ImGui::GetWindowDrawList();dl->AddRectFilled(canvas,canvas+size,IM_COL32(28,31,38,255),5);if(ImGui::IsItemHovered()&&ImGui::IsMouseDragging(ImGuiMouseButton_Left)){ImVec2 mouse=ImGui::GetIO().MousePos;for(auto&pos:positions_){ImVec2 q=canvas+pos;if(std::hypot(mouse.x-q.x,mouse.y-q.y)<28){pos=mouse-canvas;break;}}}

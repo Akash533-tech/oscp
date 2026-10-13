@@ -11,6 +11,8 @@ public:
     DeadlockPanel();
     /** Renders Banker's algorithm and graph detection tools. */ void render();
     /** Restores textbook defaults. */ void reset();
+    /** Serializes editable Banker state. */ std::string saveState() const;
+    /** Restores editable Banker state. */ bool loadState(const std::string& json);
     const std::string& status() const { return status_; }
 private:
     void loadBanker(int); void runSafety(); void runRequest(); void exportResults(); void loadGraph(bool deadlocked); void drawGraph();

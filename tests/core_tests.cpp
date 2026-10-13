@@ -2,6 +2,7 @@
 #include "core/MemoryManager.h"
 #include "core/PageReplacement.h"
 #include "core/Deadlock.h"
+#include "core/DiskScheduler.h"
 #include <cassert>
 #include <cmath>
 #include <iostream>
@@ -18,7 +19,9 @@ int main(){
  auto mem=MemoryManager::allocate({100,500,200,300,600},{212,417,112,426},FitAlgorithm::First);assert((mem.allocation==std::vector<int>{1,4,2,-1}));
  auto belady3=PageReplacement::run({1,2,3,4,1,2,5,1,2,3,4,5},3,PageAlgorithm::FIFO),belady4=PageReplacement::run({1,2,3,4,1,2,5,1,2,3,4,5},4,PageAlgorithm::FIFO);assert(belady3.faults==9&&belady4.faults==10);
  auto cycle=Deadlock::detectCycle(3,{{0,1},{1,2},{2,0}});assert(cycle.hasCycle);
+ auto diskFcfs=DiskScheduler::run({98,183,37,122,14,124,65,67},53,200,DiskAlgorithm::FCFS);
+ auto diskSstf=DiskScheduler::run({98,183,37,122,14,124,65,67},53,200,DiskAlgorithm::SSTF);
+ assert(diskFcfs.totalMovement==640&&diskSstf.totalMovement==236);
  std::cout<<"All MiniOS core tests passed.\n";
 }
-
 
